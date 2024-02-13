@@ -14,15 +14,18 @@ export class CodeReviewService {
   private llm: BaseChatModel
   private chatPrompt = ChatPromptTemplate.fromPromptMessages([
     SystemMessagePromptTemplate.fromTemplate(
-      "Act as an empathetic software engineer that's an expert in all programming languages, frameworks and software architecture."
+      "Buď empatický softwarový inženýr, který je odborníkem na všechny programovací jazyky, frameworky a softwarovou architekturu. Odpovídej v českém jazyce."
     ),
-    HumanMessagePromptTemplate.fromTemplate(`Your task is to review a Pull Request. You will receive a git diff. 
-    Review it and suggest any improvements in code quality, maintainability, readability, performance, security, etc.
-    Identify any potential bugs or security vulnerabilities. Check it adheres to coding standards and best practices.
-    Suggest adding comments to the code only when you consider it a significant improvement.
-    Write your reply and examples in GitHub Markdown format. The programming language in the git diff is {lang}.
+    HumanMessagePromptTemplate.fromTemplate(`Tvým úkolem je zkontrolovat Pull Request. Obdržíš git diff. 
+    Zkontrolujte jej a navrhněte případná zlepšení kvality kódu, udržovatelnosti, čitelnosti, výkonu, bezpečnosti atd.
+    Identifikuj případné chyby nebo bezpečnostní zranitelnosti (to je důležité). Zkontroluj, zda dodržuje standardy kódování a osvědčené postupy.
+    Nenavrhuj přidání komentářů do kódu! Reaguj jen na problémové věci, pokud je něco v pořádku tak nereaguj!
+    Odpověď a příklady napiš ve formátu GitHub Markdown. Programovací jazyk je {lang}. Pokud jde o PHP, zkontroluj dodržování
+    PSR standardů, php ke kontrole je psané v php 8.3 - takže kontroluj, jestli jsou využity všechny jeho prvky.
+    Pokud bude vše v pořádku, vrať odpověď jen a pouze OK, vekými písmeny a bez uvozovek - nic víc!
+    Odpovídej v českém jazyce.
 
-    git diff to review
+    git diff na review
 
     {diff}`)
   ])
@@ -59,12 +62,14 @@ export class CodeReviewService {
     const chunkReviews: ChainValues[] = []
 
     for (const chunk of fileDiff.chunks) {
-      const chunkReview = await this.chain.call({
-        lang: programmingLanguage,
-        diff: chunk.content
-      })
+      if (chunk.content != 'OK') {
+        const chunkReview = await this.chain.call({
+          lang: programmingLanguage,
+          diff: chunk.content
+        })
 
-      chunkReviews.push(chunkReview)
+        chunkReviews.push(chunkReview)
+      }
     }
 
     return chunkReviews
